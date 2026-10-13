@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>مخطط الميزانية</title>
+    <link rel="stylesheet" href="./bootstrap.min.css" />
+    <link rel="stylesheet" href="./bootstrap-icons.min.css" />
+  </head>
+  <body class="bg-light" dir="rtl">
+    <div class="container mt-4 p-4 bg-white shadow rounded">
+      <h2 class="text-center mb-4">مخطط الميزانية الشخصية</h2>
+      <div class="row mb-4">
+        <div class="col-2">
+          <button class="btn btn-primary w-100" id="setBudgetBtn">تعيين</button>
+        </div>
+        <div class="col-4">
+          <input
+            type="number"
+            id="budgetInput"
+            class="form-control text-center"
+            placeholder="الميزانية الشهرية"
+          />
+        </div>
+      </div>
+      <div class="row text-center mb-4">
+        <div class="col-4">
+          <h5>
+            الميزانية: <span id="budgetValue" class="text-primary">0</span> $
+          </h5>
+        </div>
+        <div class="col-4">
+          <h5>
+            إجمالي المصاريف:
+            <span id="totalExpenses" class="text-danger">0</span> $
+          </h5>
+        </div>
+        <div class="col-4">
+          <h5>الحالة: <span id="status" class="fw-bold"></span></h5>
+        </div>
+      </div>
+
+      <hr />
+      <div class="row mb-3">
+        <div class="col-3">
+          <button class="btn btn-success w-100" id="addExpenseBtn">
+            إضافة
+          </button>
+        </div>
+
+        <div class="col-3">
+          <input
+            type="number"
+            id="expenseAmount"
+            class="form-control text-center"
+            placeholder="المبلغ"
+          />
+        </div>
+
+        <div class="col-3">
+          <select id="expenseCategory" class="form-control text-center">
+            <option value="طعام">طعام</option>
+            <option value="مواصلات">مواصلات</option>
+            <option value="ترفيه">ترفيه</option>
+            <option value="فواتير">فواتير</option>
+          </select>
+        </div>
+        <div class="col-3">
+          <input
+            type="text"
+            id="expenseTitle"
+            class="form-control text-center"
+            placeholder="وصف المصروف"
+          />
+        </div>
+      </div>
+      <table class="table border-warning table-bordered text-center">
+        <thead class="table-warning border-warning">
+          <tr>
+            <th>الرقم</th>
+            <th>الوصف</th>
+            <th>المبلغ</th>
+            <th>الفئة</th>
+            <th>حذف</th>
+          </tr>
+        </thead>
+        <tbody id="expenseTable">
+          <tr>
+            <td colspan="5" class="text-muted fw-bold py-3">لا توجد مصاريف</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <script>
+      let budget = 0;
+      let expenses = [];
+      let count = 1;
+
+      const budgetInput = document.getElementById("budgetInput");
+      const setBudgetBtn = document.getElementById("setBudgetBtn");
+      const budgetValue = document.getElementById("budgetValue");
+      const totalExpenses = document.getElementById("totalExpenses");
+      const status = document.getElementById("status");
+
+      const expenseTitle = document.getElementById("expenseTitle");
+      const expenseAmount = document.getElementById("expenseAmount");
+      const expenseCategory = document.getElementById("expenseCategory");
+      const addExpenseBtn = document.getElementById("addExpenseBtn");
+      const expenseTable = document.getElementById("expenseTable");
+      setBudgetBtn.addEventListener("click", () => {
+        if (budgetInput.value === "") {
+          alert("يرجى إدخال الميزانية");
+          return;
+        }
+        budget = Number(budgetInput.value);
+        budgetValue.textContent = budget;
+        updateStatus();
+      });
+      addExpenseBtn.addEventListener("click", () => {
+        const title = expenseTitle.value;
+        const amount = Number(expenseAmount.value);
+        const category = expenseCategory.value;
+
+        if (title === "" && amount === 0) {
+          alert("يرجى إدخال وصف المصروف والمبلغ");
+          return;
+        } else if (amount === 0) {
+          alert("يرجى إدخال المبلغ");
+          return;
+        } else if (title === "") {
+          alert("يرجى إدخال وصف المصروف");
+          return;
+        }
+        const expense = {
+          id: Date.now(),
+          num: count++,
+          title,
+          amount,
+          category,
+        };
+        expenses.push(expense);
+        expenseTitle.value = "";
+        expenseAmount.value = "";
+        renderExpenses();
+        updateStatus();
+      });
+      function renderExpenses() {
+        expenseTable.innerHTML = "";
+        if (expenses.length === 0) {
+          expenseTable.innerHTML = `
+            <tr><td colspan="5" class="text-muted fw-bold py-3">لا توجد مصاريف</td></tr>
+          `;
+          return;
+        }
+        expenses.forEach((item) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${item.num}</td>
+            <td>${item.title}</td>
+            <td>${item.amount} $</td>
+            <td>${item.category}</td>
+            <td>
+              <button class="btn btn-danger btn-sm" onclick="deleteExpense(${item.id})">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          `;
+          expenseTable.appendChild(tr);
+        });
+        updateTotal();
+      }
+      function deleteExpense(id) {
+        expenses = expenses.filter((item) => item.id !== id);
+        expenses = expenses.map((item, index) => {
+          return { ...item, num: index + 1 };
+        });
+        count = expenses.length + 1;
+        renderExpenses();
+        updateStatus();
+      }
+      function updateTotal() {
+        const total = expenses.reduce((sum, item) => sum + item.amount, 0);
+        totalExpenses.textContent = total;
+      }
+      function updateStatus() {
+        const total = expenses.reduce((sum, item) => sum + item.amount, 0);
+        if (budget === 0) {
+          status.textContent = "لم يتم تعيين الميزانية";
+          status.classList.remove("text-success", "text-danger");
+          status.classList.add("text-muted");
+          return;
+        }
+        if (total <= budget) {
+          status.textContent = "ضمن الميزانية ✔";
+          status.classList.remove("text-danger");
+          status.classList.add("text-success");
+        } else {
+          status.textContent = "تجاوزت الميزانية ❗";
+          status.classList.remove("text-success");
+          status.classList.add("text-danger");
+        }
+      }
+    </script>
+    <script src="./bootstrap.bundle.min.js"></script>
+  </body>
+</html>
